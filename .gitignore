@@ -1,3 +1,5 @@
-node_modules
-dist
-public/bundles
+/node_modules/
+/dist/
+/public/bundles/
+*.ipynb
+*.old

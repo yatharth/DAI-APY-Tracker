@@ -1,16 +1,16 @@
 {
-  "name": "coding-test",
-  "version": "1.0.0",
+  "name": "dai-apy-tracker",
+  "version": "0.0.1",
   "main": "dist/server.js",
-  "repository": "git@github.com:CoinCircle/coding-test.git",
-  "author": "Coincircle Engineering",
+  "author": "Yatharth Agarwal",
   "license": "MIT",
-  "private": false,
+  "private": true,
   "scripts": {
     "build:watch": "./node_modules/webpack/bin/webpack.js --config webpack.config.js --env dev --watch",
     "start": "nodemon --delay 850ms --watch dist/server.js --exec 'node --inspect=0.0.0.0:9229 dist/server.js'"
   },
   "devDependencies": {
+    "@types/bluebird": "^3.5.36",
     "@types/chai": "^4.2.18",
     "@types/express": "^4.17.12",
     "@types/pg": "^8.6.1",
@@ -24,15 +24,21 @@
     "webpack-node-externals": "^3.0.0"
   },
   "dependencies": {
+    "@aave/protocol-v2": "^1.0.1",
     "assert": "^2.0.0",
+    "async-redis": "^2.0.0",
     "bluebird": "^3.7.2",
+    "body-parser": "^1.19.1",
     "crypto-browserify": "^3.12.0",
+    "ethers": "^5.4.1",
     "express": "^4.17.1",
     "https-browserify": "^1.0.0",
+    "p-iteration": "^1.1.8",
     "pg": "^8.6.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
+    "redis": "^4.0.3",
     "stream-browserify": "^3.0.0",
-    "util": "^0.12.4"
+    "typeorm": "^0.2.41"
   }
 }

@@ -17,7 +17,7 @@ const ROOT = path.resolve(__dirname);
    mode: 'development',
    resolve: {
      // Allows us to leave off file extensions in imports
-     extensions: ['.js', '.json', '.jsx', '.ts', '.tsx', '.mjs'],
+     extensions: ['.js', '.json', '.jsx', '.ts', '.tsx', '.mjs', '.css'],
 
      // resolve.modules tells webpack where to look when we import modules into a file
      modules: ['node_modules'],
@@ -112,6 +112,9 @@ const ROOT = path.resolve(__dirname);
          test: /\.mjs$/,
          include: /node_modules/,
          type: "javascript/auto",
+       }, {
+         test: /\.css$/i,
+         use: ['style-loader', 'css-loader'],
        }
      ]
    },

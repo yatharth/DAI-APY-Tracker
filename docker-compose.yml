@@ -1,41 +1,45 @@
 version: "2"
 services:
+
     web:
+        image: node:12.18.3
+
+        working_dir: "/app"
         tty: true
         stdin_open: true
-        build:
-            context: .
-            dockerfile: ./Dockerfile
-        command: "/bin/bash"
+        command: "npm start"
+
         volumes:
             - $PWD/:/app
         ports:
-            - "3001:3000"
-            # Allows node debugger to connect at port 9230
-            - "9230:9229"
+            - "3000:3000"  # for web app
+            - "9229:9229"  # for node debugger
         links:
             - redis
             - postgres
         environment:
-            - NODE_ENV=development
-            - ROOT_DIR=/app
-            - NODE_PATH=/usr/local/lib/node_modules/
+            ROOT_DIR: "/app"
+            NODE_ENV: "development"
+            NODE_PATH: "/usr/local/lib/node_modules/"
 
     redis:
         image: redis
         ports:
-            - "6377:6379"
+            - "6379:6379"
+
     postgres:
-        image: postgres:9
+        image: timescale/timescaledb:latest-pg14
         volumes:
-          - "db-data:/var/lib/postgresql/data/pgdata"
+            - "db-data:/var/lib/postgresql/data/pgdata"
+            - $PWD/src/lib/db/init/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+        ports:
+            - "5432:5432"
         environment:
             PGDATA: "/var/lib/postgresql/data/pgdata"
             POSTGRES_USER: "pguser"
             POSTGRES_PASSWORD: "password"
-            POSTGRES_DB: "app"
-        ports:
-            # From host machine, pg is connectable at port 5430
-            - "5430:5432"
+
+
+
 volumes:
   db-data:

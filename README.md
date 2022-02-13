@@ -1,90 +1,84 @@
-# CoinCircle Coding Test
+# DAI APY Tracker
 
-<hr>
+This is a simple containerised full-stack application to comparing historical DAI interest rates across several on-chain protocols.
 
-**1. The test involves creating a very simple full-stack application that
-allows you to compare historical DAI interest rates across the top on-chain
-protocols that allow you to earn interest on DAI:**
+The current protocols supported are:
 
-1. [Compound Finance](https://compound.finance)
-2. Choose your own for the 2nd! (for example The DAI Savings Rate). Some examples:
-   * [DAI Savings Rate](https://makerdao.world/en/learn/Dai/dsr/)
-   * [Aave](https://aave.com)
+- Compound Finance
+- Aave
 
-If you're unfamiliar with DAI, you can read about it here: https://docs.makerdao.com/smart-contract-modules/dai-module
+The web app has two views:
 
-DAI is a special cryptocurrency that maintains a value of exactly $1. The protocols above are implementations of blockchain
-applications that allow you to lend DAI to others, and earn interest on it in a completely decentralized, autonomous way
-without having to interact with a bank, middleman, or even a web server.
+- Realtime, which displays the last 30 days of data and updates in real time.
+- Historical, which displays several years of data, at a 5-minute resolution.
 
-You will be judged on the following:
+The app is designed to scale in two respects:
 
-1. Code Quality / Readability / Maintainability / Architecture
-2. Design UX/UI
-3. Performance (speed)
-
-The full-stack application must be written according to the following specifications:
-
-1. The application must fully load quickly (less than 500ms).
-2. The UI must render a historical graph that live updates as the interest rates change.
-3. The application must show at least 128 blocks. For the historical data, your web application may query contracts besides your own as well as any other on-chain data.
-4. As you are building, you should use github to push commits. The final app should be published on github, which is where we will find it. Name it something original that you think sounds cool.  Please be sure to NOT call it anything with the words CoinCircle or Coding Test or CoinCircle Coding Test or anything similar.  Once you have published it and tested that it can be downloaded and run from a new enviornment with `make run` please email us and let us know it's ready for us to try out.
-5. Use the main ethereum mainnet to query the interest rates, rather than the testnet which is recommended for the 2nd part of this test. The reason
-for this is because there is not much activity on the testnets as compared to the mainnet, so you will end up with a flat graph.
-
-<hr>
+- a large number of users
+- a growing amount of data stored over time 
 
 
-## Boilerplate
+## Installation
 
-A NodeJS / Express / React boilerplate is already created for you in this repo.
-
-To get started running it:
-
-1. Run `yarn install` to install dependencies
-2. Install docker if you don't have it already, and start the containers with `docker compose up -d`
-3. In terminal #1, run `npm run build:watch` to generate webpack bundle
-4. In terminal #2, run `make serve` to start the express server, which is available at `localhost:3001`.
-
-The following ports are mapped for you for development/debugging purposes:
-
-* Node debugger: Port 9230
-* Redis: Port 6377
-* Postgres
-  * Port: 5430
-  * Username: pguser
-  * Password: password
-  * Database: app
-
-<br>
+Simply clone the repo, run `yarn install`, and with `make run`, you’re up.
 
 
-# Helpful Info
+## Architecture
 
-## Ethereum JSON RPC Provider
+The app is containerised using Docker Compose. It provisions a Redis server, a Postgres database, and a web service.
 
-Feel free to use our node as a Ethereum JSON RPC Provider:
+The web services consists of a React front-end (in `src/client`) and a back-end server (`src/server`). The server is responsible for 
 
-Ropsten: https://eth-testnet.coincircle.com
-Mainnet: https://eth.coincircle.com
+- serving the React front-end
+- serving some API functions for the front-end to consume
+- running a worker to check for the latest rates periodically
 
-Also, note that you only need to get the lending (supply) rates. You don't need to worry about implementing the borrow rate.
+The database uses TimescaleDB, which is a Postgres extensions designed to make scaling with time series simple and performant.
 
-## Regarding Historical Data
+Most of the code is well-modularised into different components in `src/lib`:
 
-When querying an Ethereum node via RPC, you can pass in a block number in the
-past so long as it is within 128 blocks of the current block. this is why the
-historical data requirement is set to 128 blocks, which is a little more than
-30 minutes worth of data.
+- `cache` provides an interface to the Redis server.
+- `db` provides an interface to the Postgres server.
+- `crypto` provides an interface to data on the blockchain.
+- `misc` provides some small utilities.
 
-Therefore, when we run your app, we expect to see at least 30 minutes of historical data,
-with new data being appended as it comes in.
+None of these components depend on each other.
 
-More info on querying past blocks here (see overrides.blockTag):
 
-https://docs.ethers.io/v5/api/contract/contract/#Contract-functionsCall
+## Scalability
 
-## More Useful Links
+The app was designed for massive scalability in terms of two things:
 
-* Compound cToken Solidity Interface: https://github.com/compound-finance/compound-protocol/blob/master/contracts/CTokenInterfaces.sol
-* Etherscan cDAI contract (mainnet): https://etherscan.io/token/0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643#readContract
+- a large number of users
+- a growing amount of data stored over time
+
+As such, I minimised the data transfer, disk storage, compute, and memory, requirements to as asymptotically small as possible.
+
+Data transfer is linear with respect number of users, thanks to caching and using the client to update in real-time. It is reduced for historical data through downsampling the resolution of the data.
+
+Memory usage is mainly impacted by cache, and is similar.
+
+Compute is correspondingly minimised thanks to heavy caching, only needing to fetch the latest rates every 10 minutes or so, and by using TimescaleDB’s efficient querying.
+
+Data storage is minimised with compression of data older than a year. It can be distributed across disks too transparently.
+
+Infrastructure cost on something like AWS could cut to small fraction by using spot instances, as no requests need to serve synchronously that are not cached, and operations run quickly and idempotently.
+
+
+## Design decisions
+
+I decided to make the server periodically check the chain for updates, instead of clients checking and posting the results to the server, as the latter would be a security threat: clients could post fake data.
+
+However, the clients do check for updates on their own too. The client gets an initial load of historical data before checking for real time data. This dramatically lessens the data transfer load on the server. Otherwise, the server would have to push data using web sockets.
+
+As it is, the server only has to expose two easily-cacheable endpoints: /recents and /historical. The CDN can take the brunt of user requests; the server only has to be checked every 10 minutes for the /recents data and every hour of the /historical data.
+
+The historical data uses downsampling: it returns the average APY at a 5-minute resolution, further greatly reducing the data transfer and cache memory load.
+
+Storage is minimised by using TimescaleDB’s compression features, to compress data older than one year.
+
+Compute time is minimised by using TimescaleDB’s very performant indexing and querying for retrieving the data.
+
+If we only had one end-point, then we could not cache efficiently. We don’t want the recents data getting too old, so we’d have to update it every 10 minutes or less, but dragging in all of the historical data would be expensive.
+
+This way, users can get a realtime view with the last 30 days of data, and if they want a historical view, we can offer that as well, at the cost of it being stale by an hour. 
