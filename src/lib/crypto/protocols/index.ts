@@ -1,15 +1,16 @@
 import {aaveApyForBlock} from './aave'
 import {compoundApyForBlock} from './compound'
-import {Protocol} from '../../schema'
+import {Protocol} from '../../../schema'
 
-export const protocols = [
+export const protocols: {
+    key: Protocol,
+    apyForBlock: (blockNumber: number) => Promise<number>
+}[] = [
     {
-        key: 'aave' as Protocol,
-        name: "Aave Lending Pool",
+        key: 'aave',
         apyForBlock: aaveApyForBlock,
     }, {
-        key: 'compound' as Protocol,
-        name: "Compound Finance",
+        key: 'compound',
         apyForBlock: compoundApyForBlock,
     }
 ]

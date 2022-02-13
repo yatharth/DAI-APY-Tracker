@@ -1,8 +1,8 @@
 import {map} from 'p-iteration'
 import {getRecentBlocks} from './ethereum'
-import {protocols} from './protocols'
+import {protocols} from './protocols/index'
 import {flatten} from '../misc/iteration'
-import {Row} from '../schema'
+import {Row} from '../../schema'
 
 
 function fakeApy(): number {

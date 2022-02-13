@@ -1,6 +1,6 @@
 import {Client} from 'pg'
 
-import {Protocol, Row} from '../schema'
+import {Protocol, Row} from '../../schema'
 
 
 const dbClient = new Client({
@@ -54,13 +54,13 @@ export async function getHistorical(timeframe: string = '5 years', resolution: s
     : Promise<Row[]> {
 
     const query = `
-        SELECT date_part('epoch', time_bucket('${resolution}', timestamp)) as "bucket", protocol, max("blockNumber") as "blockNumber", avg(apy)
+        SELECT date_part('epoch', time_bucket('${resolution}', timestamp)) as "bucket", protocol, max("blockNumber") as "blockNumber", last(apy, timestamp)
         FROM rates
         WHERE timestamp > now() - INTERVAL '${timeframe}'
         GROUP BY bucket, protocol
         ORDER BY bucket DESC
     `
     const result = await dbClient.query(query)
-    const rows = result.rows as {bucket: number, protocol: Protocol, blockNumber: number, avg: number}[]
-    return rows.map(row => ({timestamp: row.bucket, protocol: row.protocol, blockNumber: row.blockNumber, apy: row.avg}))
+    const rows = result.rows as {bucket: number, protocol: Protocol, blockNumber: number, last: number}[]
+    return rows.map(row => ({timestamp: row.bucket, protocol: row.protocol, blockNumber: row.blockNumber, apy: row.last}))
 }
